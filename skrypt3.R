@@ -238,7 +238,6 @@ head(resOrdered)
 
 
 
-
 resOrderedDF <- as.data.frame(resOrdered)[1:100, ]
 write.csv(resOrderedDF, file = "results_EVs_vs_cells.csv")
 
