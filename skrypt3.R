@@ -237,7 +237,7 @@ head(resOrdered)
 
 
 
-
+    
 resOrderedDF <- as.data.frame(resOrdered)[1:100, ]
 write.csv(resOrderedDF, file = "results_EVs_vs_cells.csv")
 
@@ -248,3 +248,27 @@ htmlRep <- HTMLReport(shortName="report", title="My report",
 publish(resOrderedDF, htmlRep)
 url <- finish(htmlRep)
 browseURL(url)  
+
+
+resGR <- lfcShrink(dds, coef="Type_EVs_vs_cell", type="apeglm", format="GRanges")
+resGR
+
+ens.str <- substr(names(resGR), 1, 15)
+resGR$symbol <- mapIds(org.Hs.eg.db, ens.str, "SYMBOL", "ENSEMBL")
+BiocManager::install("Gviz")
+library("Gviz")
+window <- resGR[topGene] + 1e6
+strand(window) <- "*"
+resGRsub <- resGR[resGR %over% window]
+naOrDup <- is.na(resGRsub$symbol) | duplicated(resGRsub$symbol)
+resGRsub$group <- ifelse(naOrDup, names(resGRsub), resGRsub$symbol)
+status <- factor(ifelse(resGRsub$padj < 0.05 & !is.na(resGRsub$padj),
+                        "sig", "notsig"))
+options(ucscChromosomeNames = FALSE)
+g <- GenomeAxisTrack()
+a <- AnnotationTrack(resGRsub, name = "gene ranges", feature = status)
+d <- DataTrack(resGRsub, data = "log2FoldChange", baseline = 0,
+               type = "h", name = "log2 fold change", strand = "+")
+plotTracks(list(g, d, a), groupAnnotation = "group",
+           notsig = "grey", sig = "hotpink")
+
